@@ -51,9 +51,17 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
-        echo "## Trivy Vulnerability Scan Report" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        cat trivy_output.txt >> $GITHUB_STEP_SUMMARY
+        if [[ -s trivy_output.txt ]]; then
+          {
+            echo "### Security Output"
+            echo "<details><summary>Click to expand</summary>"
+            echo ""
+            echo '```terraform'
+            cat trivy.txt
+            echo '```'
+            echo "</details>"
+          } >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Warn if vulnerabilities found
       if: steps.trivy.outcome == 'failure'
