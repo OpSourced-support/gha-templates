@@ -34,13 +34,10 @@ runs:
       shell: bash
       
     - name: Install Trivy
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget
-        wget -qO trivy.tar.gz https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.tar.gz
-        tar zxvf trivy.tar.gz
-        sudo mv trivy /usr/local/bin/
+      uses: aquasecurity/setup-trivy@v0.2.3
+      with:
+        version: v0.61.0
+        cache: true
 
     - name: Run Trivy scan
       id: trivy
@@ -52,6 +49,7 @@ runs:
     - name: Upload summary to GitHub
       if: always()
       shell: bash
+      continue-on-error: true
       run: |
         echo "## Trivy Vulnerability Scan Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
