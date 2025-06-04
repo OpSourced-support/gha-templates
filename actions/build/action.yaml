@@ -13,7 +13,7 @@ runs:
       run: |
            docker context create builders
            
-    - uses: docker/setup-buildx-action@v2
+    - uses: docker/setup-buildx-action@v3.10.0
       id: setup
       with:
         version: latest
