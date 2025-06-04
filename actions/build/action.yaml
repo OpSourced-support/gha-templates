@@ -20,14 +20,22 @@ runs:
         endpoint: builders
         use: true
 
+    - name: Restore Docker layers cache
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
     - uses: docker/build-push-action@v6.17.0
       with:
         context: .
         push: false
         builder: ${{ steps.setup.outputs.name }}
         tags: image/app:${{ inputs.image_tag }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
         outputs: type=docker
 
     - run: docker logout ghcr.io
@@ -68,3 +76,11 @@ runs:
       shell: bash
       run: |
         echo "::warning title=Trivy Scan Found Vulnerabilities::Some vulnerabilities were found. Please review the summary above."
+
+    - name: Save Docker layers cache
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
