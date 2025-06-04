@@ -20,22 +20,14 @@ runs:
         endpoint: builders
         use: true
 
-    - name: Restore Docker layers cache
-      uses: actions/cache@v4
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-
-    - uses: docker/build-push-action@v6.17.0
+    - uses: docker/build-push-action@v6.18.0
       with:
         context: .
         push: false
         builder: ${{ steps.setup.outputs.name }}
         tags: image/app:${{ inputs.image_tag }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
         outputs: type=docker
 
     - run: docker logout ghcr.io
@@ -47,12 +39,13 @@ runs:
         version: v0.61.0
         cache: true
 
-    - name: Run Trivy scan
-      id: trivy
-      continue-on-error: true
+    - name: Run Trivy scan and warn if vulnerabilities found
       shell: bash
+      continue-on-error: true
       run: |
-        trivy image --severity CRITICAL,HIGH --format table --exit-code 1 --output trivy_output.txt image/app:${{ inputs.image_tag }}
+        if ! trivy image --severity CRITICAL,HIGH --format table --exit-code 1 --output trivy_output.txt image/app:${{ inputs.image_tag }}; then
+          echo "::warning title=Trivy Scan Found Vulnerabilities::Some vulnerabilities were found. Please review the summary above."
+        fi
 
     - name: Upload summary to GitHub
       if: always()
@@ -70,17 +63,3 @@ runs:
             echo "</details>"
           } >> $GITHUB_STEP_SUMMARY
         fi
-
-    - name: Warn if vulnerabilities found
-      if: steps.trivy.outcome == 'failure'
-      shell: bash
-      run: |
-        echo "::warning title=Trivy Scan Found Vulnerabilities::Some vulnerabilities were found. Please review the summary above."
-
-    - name: Save Docker layers cache
-      uses: actions/cache@v4
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
