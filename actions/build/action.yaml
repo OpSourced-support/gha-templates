@@ -57,7 +57,7 @@ runs:
             echo "<details><summary>Click to expand</summary>"
             echo ""
             echo '```terraform'
-            cat trivy.txt
+            cat trivy_output.txt
             echo '```'
             echo "</details>"
           } >> $GITHUB_STEP_SUMMARY
