@@ -34,6 +34,7 @@ runs:
       shell: bash
       
     - name: Install Trivy
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y wget
@@ -44,11 +45,13 @@ runs:
     - name: Run Trivy scan
       id: trivy
       continue-on-error: true
+      shell: bash
       run: |
         trivy image --severity CRITICAL,HIGH --format table --exit-code 1 --output trivy_output.txt image/app:${{ inputs.image_tag }}
 
     - name: Upload summary to GitHub
       if: always()
+      shell: bash
       run: |
         echo "## Trivy Vulnerability Scan Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -56,5 +59,6 @@ runs:
 
     - name: Warn if vulnerabilities found
       if: steps.trivy.outcome == 'failure'
+      shell: bash
       run: |
         echo "::warning title=Trivy Scan Found Vulnerabilities::Some vulnerabilities were found. Please review the summary above."
