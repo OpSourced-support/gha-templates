@@ -1,0 +1,60 @@
+name: builder
+description: Builds docker containers
+
+inputs:
+  image_tag:
+    required: true
+    description: tag for docker image
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+           docker context create builders
+           
+    - uses: docker/setup-buildx-action@v2
+      id: setup
+      with:
+        version: latest
+        endpoint: builders
+        use: true
+
+    - uses: docker/build-push-action@v6.17.0
+      with:
+        context: .
+        push: false
+        builder: ${{ steps.setup.outputs.name }}
+        tags: image/app:${{ inputs.image_tag }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=docker
+
+    - run: docker logout ghcr.io
+      shell: bash
+      
+    - name: Install Trivy
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget
+        wget -qO trivy.tar.gz https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.tar.gz
+        tar zxvf trivy.tar.gz
+        sudo mv trivy /usr/local/bin/
+
+    - name: Run Trivy scan
+      id: trivy
+      continue-on-error: true
+      run: |
+        trivy image --severity CRITICAL,HIGH --format table --exit-code 1 --output trivy_output.txt image/app:${{ inputs.image_tag }}
+
+    - name: Upload summary to GitHub
+      if: always()
+      run: |
+        echo "## Trivy Vulnerability Scan Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        cat trivy_output.txt >> $GITHUB_STEP_SUMMARY
+
+    - name: Warn if vulnerabilities found
+      if: steps.trivy.outcome == 'failure'
+      run: |
+        echo "::warning title=Trivy Scan Found Vulnerabilities::Some vulnerabilities were found. Please review the summary above."

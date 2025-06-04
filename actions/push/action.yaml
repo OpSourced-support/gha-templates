@@ -1,0 +1,21 @@
+name: tag and push docker images
+description: tags and pushes to repos
+
+inputs:
+  ecr_repo:
+    required: true
+    description: repo for image
+  ecr_reg:
+    required: true
+    description: ecr registry to push to
+  image_tag:
+    required: true
+    description: tag for docker image
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        docker tag image/app:${{ inputs.image_tag }} ${{ inputs.ecr_reg }}/${{ inputs.ecr_repo }}:${{ inputs.image_tag }}
+        docker push ${{ inputs.ecr_reg }}/${{ inputs.ecr_repo }}:${{ inputs.image_tag }}
